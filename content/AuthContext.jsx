@@ -1,44 +1,56 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
-import Navbar from "./components/Navbar";
-import ProtectedRoute from "./components/ProtectedRoute";
+import { createContext, useContext, useState, useEffect } from "react";
 
-import Home from "./pages/Home";
-import TopicsList from "./pages/TopicsList";
-import TopicDetail from "./pages/TopicDetail";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Profile, { ProfileOverview, ProfileSettings } from "./pages/Profile";
-import NotFound from "./pages/NotFound";
+const AuthContext = createContext(null);
 
-export default function App() {
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem("currentUser");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    if (user) {
+      localStorage.setItem("currentUser", JSON.stringify(user));
+    } else {
+      localStorage.removeItem("currentUser");
+    }
+  }, [user]);
+
+  const login = (email, password) => {
+    const users = JSON.parse(localStorage.getItem("users") || "[]");
+    const foundUser = users.find((u) => u.email === email && u.password === password);
+    if (!foundUser) {
+      throw new Error("Неверный логин или пароль");
+    }
+    setUser({ name: foundUser.name, email: foundUser.email });
+  };
+
+  const register = (name, email, password) => {
+    const users = JSON.parse(localStorage.getItem("users") || "[]");
+    if (users.some((u) => u.email === email)) {
+      throw new Error("Пользователь с таким email уже зарегистрирован");
+    }
+    const newUser = { name, email, password };
+    users.push(newUser);
+    localStorage.setItem("users", JSON.stringify(users));
+    setUser({ name: newUser.name, email: newUser.email });
+  };
+
+  const logout = () => {
+    setUser(null);
+  };
+
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Navbar />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/topics" element={<TopicsList />} />
-          <Route path="/topic/:id" element={<TopicDetail />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          
-          {/* Защищённый личный кабинет с подмаршрутами через Outlet */}
-          <Route 
-            path="/profile" 
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<ProfileOverview />} />
-            <Route path="settings" element={<ProfileSettings />} />
-          </Route>
-
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+    <AuthContext.Provider value={{ user, login, register, logout }}>
+      {children}
+    </AuthContext.Provider>
   );
+}
+
+export function useAuth() {
+  return useContext(AuthContext);
 }
