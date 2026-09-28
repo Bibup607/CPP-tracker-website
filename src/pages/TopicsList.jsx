@@ -1,198 +1,331 @@
-﻿import { useState, useEffect } from "react";
+﻿import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { TOPICS } from "../data/topicsData";
 
+const DIFFICULTY_WEIGHT = {
+  Easy: 1,
+  Medium: 2,
+  Hard: 3
+};
+
 export default function TopicsList() {
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("Все");
-  const [difficultyFilter, setDifficultyFilter] = useState("Все");
-  
-  const [completedMap, setCompletedMap] = useState(() => {
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [sortDifficulty, setSortDifficulty] = useState("default"); // 'default' | 'asc' (Easy->Hard) | 'desc' (Hard->Easy)
+
+  // Получаем список категорий
+  const categories = useMemo(() => {
+    const cats = new Set(TOPICS.map((t) => t.category));
+    return ["All", ...Array.from(cats)];
+  }, []);
+
+  // Сохраненный прогресс
+  const completedTopics = useMemo(() => {
     try {
-      const saved = localStorage.getItem("completedTopics");
-      return saved ? JSON.parse(saved) : {};
+      return JSON.parse(localStorage.getItem("completedTopics") || "{}");
     } catch {
       return {};
     }
-  });
+  }, []);
 
-  useEffect(() => {
-    localStorage.setItem("completedTopics", JSON.stringify(completedMap));
-  }, [completedMap]);
+  // Фильтрация и сортировка
+  const filteredAndSortedTopics = useMemo(() => {
+    let result = TOPICS.filter((topic) => {
+      const matchesSearch =
+        topic.title.toLowerCase().includes(search.toLowerCase()) ||
+        topic.category.toLowerCase().includes(search.toLowerCase());
+      const matchesCategory =
+        selectedCategory === "All" || topic.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
 
-  const toggleTopic = (id) => {
-    setCompletedMap((prev) => ({
-      ...prev,
-      [id]: !prev[id]
-    }));
+    if (sortDifficulty === "asc") {
+      result = [...result].sort(
+        (a, b) => DIFFICULTY_WEIGHT[a.difficulty] - DIFFICULTY_WEIGHT[b.difficulty]
+      );
+    } else if (sortDifficulty === "desc") {
+      result = [...result].sort(
+        (a, b) => DIFFICULTY_WEIGHT[b.difficulty] - DIFFICULTY_WEIGHT[a.difficulty]
+      );
+    }
+
+    return result;
+  }, [search, selectedCategory, sortDifficulty]);
+
+  // Переключение сортировки по клику на столбец
+  const toggleDifficultySort = () => {
+    if (sortDifficulty === "default") setSortDifficulty("asc");
+    else if (sortDifficulty === "asc") setSortDifficulty("desc");
+    else setSortDifficulty("default");
   };
 
-  const categories = ["Все", "Основы", "Память", "Функции", "Файлы", "Архитектура", "ООП", "Шаблоны"];
-
-  const filteredTopics = (TOPICS || []).filter((t) => {
-    const s = search.toLowerCase();
-    const matchesSearch = (t.title || "").toLowerCase().includes(s) || 
-                          (t.syntax || "").toLowerCase().includes(s);
-    const matchesCat = category === "Все" || t.category === category;
-    const matchesDiff = difficultyFilter === "Все" || t.difficulty === difficultyFilter;
-    return matchesSearch && matchesCat && matchesDiff;
-  });
-
-  const completedCount = Object.values(completedMap).filter(Boolean).length;
-  const totalCount = TOPICS ? TOPICS.length : 0;
-  const progressPercent = totalCount ? Math.round((completedCount / totalCount) * 100) : 0;
-
-  const getDifficultyBadge = (diff) => {
-    if (diff === "Easy") return { color: "#2cbb5d", bg: "rgba(44, 187, 93, 0.12)" };
-    if (diff === "Medium") return { color: "#ffc01e", bg: "rgba(255, 192, 30, 0.12)" };
-    return { color: "#ef4743", bg: "rgba(239, 71, 67, 0.12)" };
+  const getDifficultyColor = (diff) => {
+    if (diff === "Easy") return "#2cbb5d";
+    if (diff === "Medium") return "#ffc01e";
+    return "#ef4743";
   };
+
+  const completedCount = Object.values(completedTopics).filter(Boolean).length;
+  const progressPercent = Math.round((completedCount / TOPICS.length) * 100);
 
   return (
-    <div className="container page-anim" style={{ padding: "24px 16px" }}>
-      {/* Аналитический блок */}
+    <div className="container page-anim" style={{ maxWidth: "1280px", padding: "40px 20px 80px" }}>
+      
+      {/* Шапка раздела со статистикой прогресса */}
       <div style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 320px",
-        gap: "24px",
-        marginBottom: "24px",
-        background: "var(--bg-secondary)",
-        padding: "24px",
-        borderRadius: "8px",
-        border: "1px solid var(--border-color)"
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-end",
+        flexWrap: "wrap",
+        gap: "20px",
+        marginBottom: "32px",
+        borderBottom: "1px solid var(--border-color)",
+        paddingBottom: "24px"
       }}>
         <div>
-          <div style={{ display: "inline-block", background: "rgba(255, 161, 22, 0.1)", color: "var(--accent-orange)", border: "1px solid rgba(255,161,22,0.2)", borderRadius: "4px", fontSize: "11px", fontWeight: 700, padding: "2px 8px", marginBottom: "8px" }}>
-            C++ ROADMAP
-          </div>
-          <h1 style={{ fontSize: "24px", fontWeight: 700, margin: "0 0 8px 0" }}>
-            Каталог тем C++ & ООП
+          <span style={{ fontSize: "12px", textTransform: "uppercase", color: "var(--accent-orange)", fontWeight: 700, letterSpacing: "1px" }}>
+            Дорожная карта
+          </span>
+          <h1 style={{ fontSize: "32px", fontWeight: 800, margin: "6px 0 0 0" }}>
+            Каталог тем C++
           </h1>
-          <p style={{ color: "var(--text-muted)", fontSize: "14px", margin: 0 }}>
-            Всего доступно тем: {totalCount}. Отслеживайте прогресс изучения синтаксиса и алгоритмов.
-          </p>
         </div>
 
-        <div style={{ background: "var(--bg-main)", padding: "16px", borderRadius: "6px", border: "1px solid var(--border-color)", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
-            <span style={{ fontSize: "12px", color: "var(--text-muted)", fontWeight: 600 }}>ПРОГРЕСС</span>
-            <span style={{ fontSize: "16px", fontWeight: 700, color: "var(--accent-green)" }}>
-              {completedCount} / {totalCount} ({progressPercent}%)
-            </span>
+        {/* Прогресс-бар LeetCode style */}
+        <div style={{
+          background: "var(--bg-secondary)",
+          border: "1px solid var(--border-color)",
+          borderRadius: "8px",
+          padding: "12px 20px",
+          minWidth: "260px"
+        }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", marginBottom: "8px" }}>
+            <span style={{ color: "var(--text-muted)" }}>Пройдено:</span>
+            <strong style={{ color: "var(--text-main)" }}>{completedCount} / {TOPICS.length} ({progressPercent}%)</strong>
           </div>
-          <div style={{ height: "6px", width: "100%", background: "#262626", borderRadius: "3px", overflow: "hidden" }}>
-            <div style={{ width: `${progressPercent}%`, height: "100%", background: "var(--accent-green)", transition: "width 0.3s ease" }} />
+          <div style={{ width: "100%", height: "6px", background: "var(--bg-main)", borderRadius: "3px", overflow: "hidden" }}>
+            <div style={{
+              width: `${progressPercent}%`,
+              height: "100%",
+              background: "var(--accent-green)",
+              transition: "width 0.3s ease"
+            }} />
           </div>
         </div>
       </div>
 
-      {/* Панель фильтрации */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", marginBottom: "16px", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-          <input 
-            placeholder="Поиск по названию или синтаксису..." 
+      {/* Панель фильтров, поиска и сортировки */}
+      <div style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        flexWrap: "wrap",
+        gap: "14px",
+        marginBottom: "24px"
+      }}>
+        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", flexGrow: 1, maxWidth: "600px" }}>
+          {/* Поле поиска */}
+          <input
+            type="text"
+            placeholder="Поиск по названию или категории..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ width: "260px" }}
+            style={{
+              flexGrow: 1,
+              background: "var(--bg-secondary)",
+              border: "1px solid var(--border-color)",
+              color: "var(--text-main)",
+              padding: "10px 16px",
+              borderRadius: "6px",
+              fontSize: "14px",
+              outline: "none"
+            }}
           />
-          <select value={category} onChange={(e) => setCategory(e.target.value)}>
-            {categories.map((c) => (
-              <option key={c} value={c}>{c === "Все" ? "Все разделы" : c}</option>
+
+          {/* Фильтр по категории */}
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            style={{
+              background: "var(--bg-secondary)",
+              border: "1px solid var(--border-color)",
+              color: "var(--text-main)",
+              padding: "10px 16px",
+              borderRadius: "6px",
+              fontSize: "14px",
+              outline: "none",
+              cursor: "pointer"
+            }}
+          >
+            {categories.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat === "All" ? "Все категории" : cat}
+              </option>
             ))}
-          </select>
-          <select value={difficultyFilter} onChange={(e) => setDifficultyFilter(e.target.value)}>
-            <option value="Все">Любая сложность</option>
-            <option value="Easy">Easy</option>
-            <option value="Medium">Medium</option>
-            <option value="Hard">Hard</option>
           </select>
         </div>
 
-        <div style={{ fontSize: "13px", color: "var(--text-muted)" }}>
-          Показано: <strong style={{ color: "var(--text-main)" }}>{filteredTopics.length}</strong>
+        {/* Быстрый селектор сортировки по сложности */}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <span style={{ fontSize: "13px", color: "var(--text-muted)" }}>Сортировка:</span>
+          <select
+            value={sortDifficulty}
+            onChange={(e) => setSortDifficulty(e.target.value)}
+            style={{
+              background: "var(--bg-secondary)",
+              border: "1px solid var(--border-color)",
+              color: sortDifficulty !== "default" ? "var(--accent-orange)" : "var(--text-main)",
+              fontWeight: 600,
+              padding: "10px 14px",
+              borderRadius: "6px",
+              fontSize: "13px",
+              outline: "none",
+              cursor: "pointer"
+            }}
+          >
+            <option value="default">По порядку курса</option>
+            <option value="asc">Сложность: Easy → Hard</option>
+            <option value="desc">Сложность: Hard → Easy</option>
+          </select>
         </div>
       </div>
 
-      {/* Таблица */}
-      <div style={{ background: "var(--bg-secondary)", borderRadius: "8px", border: "1px solid var(--border-color)", overflow: "hidden" }}>
-        <div style={{ 
-          display: "grid", 
-          gridTemplateColumns: "50px 1fr 140px 100px 90px", 
-          padding: "12px 18px", 
-          background: "var(--bg-tertiary)", 
-          fontSize: "11px", 
-          color: "var(--text-muted)", 
+      {/* Таблица тем в стиле LeetCode */}
+      <div style={{
+        background: "var(--bg-secondary)",
+        border: "1px solid var(--border-color)",
+        borderRadius: "8px",
+        overflow: "hidden"
+      }}>
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "70px 1fr 180px 150px 110px",
+          padding: "14px 20px",
+          background: "var(--bg-tertiary)",
+          borderBottom: "1px solid var(--border-color)",
+          fontSize: "12px",
           fontWeight: 700,
-          textTransform: "uppercase"
+          color: "var(--text-muted)",
+          textTransform: "uppercase",
+          letterSpacing: "0.5px"
         }}>
           <div>Статус</div>
-          <div>Тема</div>
+          <div>Название темы</div>
           <div>Категория</div>
-          <div>Сложность</div>
-          <div style={{ textAlign: "right" }}>Разбор</div>
+          
+          {/* Кликабельный заголовок для быстрой сортировки по сложности */}
+          <div
+            onClick={toggleDifficultySort}
+            style={{
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              color: sortDifficulty !== "default" ? "var(--accent-orange)" : "var(--text-muted)",
+              userSelect: "none"
+            }}
+            title="Нажмите для сортировки по сложности"
+          >
+            Сложность
+            <span style={{ fontSize: "13px" }}>
+              {sortDifficulty === "default" && "⇅"}
+              {sortDifficulty === "asc" && "▲"}
+              {sortDifficulty === "desc" && "▼"}
+            </span>
+          </div>
+
+          <div style={{ textAlign: "right" }}>Действие</div>
         </div>
 
-        {filteredTopics.length === 0 ? (
-          <div style={{ padding: "40px", textAlign: "center", color: "var(--text-muted)", fontSize: "14px" }}>
-            Темы не найдены по заданным фильтрам
+        {filteredAndSortedTopics.length === 0 ? (
+          <div style={{ padding: "48px 20px", textAlign: "center", color: "var(--text-muted)", fontSize: "14px" }}>
+            Ничего не найдено по вашему запросу.
           </div>
         ) : (
-          filteredTopics.map((topic) => {
-            const isDone = !!completedMap[topic.id];
-            const badge = getDifficultyBadge(topic.difficulty);
+          filteredAndSortedTopics.map((topic, index) => {
+            const isDone = !!completedTopics[topic.id];
 
             return (
-              <div 
+              <div
                 key={topic.id}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "50px 1fr 140px 100px 90px",
-                  padding: "14px 18px",
+                  gridTemplateColumns: "70px 1fr 180px 150px 110px",
                   alignItems: "center",
-                  borderTop: "1px solid var(--border-color)",
-                  background: isDone ? "rgba(44, 187, 93, 0.03)" : "transparent"
+                  padding: "16px 20px",
+                  borderBottom: index !== filteredAndSortedTopics.length - 1 ? "1px solid var(--border-color)" : "none",
+                  background: index % 2 === 0 ? "transparent" : "rgba(255, 255, 255, 0.01)",
+                  fontSize: "14px",
+                  transition: "background 0.15s ease"
                 }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255, 255, 255, 0.03)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = index % 2 === 0 ? "transparent" : "rgba(255, 255, 255, 0.01)")}
               >
+                {/* Индикатор выполнения */}
                 <div>
-                  <input 
-                    type="checkbox" 
-                    checked={isDone} 
-                    onChange={() => toggleTopic(topic.id)}
-                    style={{ cursor: "pointer", width: "16px", height: "16px", accentColor: "var(--accent-green)" }}
-                  />
+                  <span style={{
+                    display: "inline-block",
+                    width: "18px",
+                    height: "18px",
+                    borderRadius: "50%",
+                    border: isDone ? "none" : "1.5px solid var(--border-color)",
+                    background: isDone ? "var(--accent-green)" : "transparent",
+                    color: "#121212",
+                    textAlign: "center",
+                    lineHeight: "18px",
+                    fontSize: "11px",
+                    fontWeight: 800
+                  }}>
+                    {isDone ? "✓" : ""}
+                  </span>
                 </div>
+
+                {/* Название темы со ссылкой */}
                 <div>
-                  <Link 
-                    to={`/topic/${topic.id}`} 
-                    style={{ 
-                      fontWeight: 600, 
-                      fontSize: "14px",
+                  <Link
+                    to={`/topic/${topic.id}`}
+                    style={{
                       color: isDone ? "var(--text-muted)" : "var(--text-main)",
-                      textDecoration: isDone ? "line-through" : "none" 
+                      textDecoration: isDone ? "line-through" : "none",
+                      fontWeight: 600
                     }}
                   >
                     {topic.title}
                   </Link>
-                  <div style={{ fontSize: "12px", color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: "2px" }}>
-                    {topic.syntax}
-                  </div>
                 </div>
-                <div>
-                  <span style={{ fontSize: "12px", background: "var(--bg-main)", padding: "2px 8px", borderRadius: "4px", border: "1px solid var(--border-color)", color: "var(--text-muted)" }}>
-                    {topic.category}
-                  </span>
+
+                {/* Категория */}
+                <div style={{ color: "var(--text-muted)", fontSize: "13px" }}>
+                  {topic.category}
                 </div>
+
+                {/* Сложность темы */}
                 <div>
-                  <span style={{ color: badge.color, background: badge.bg, fontSize: "12px", fontWeight: 700, padding: "2px 8px", borderRadius: "4px" }}>
+                  <span style={{
+                    color: getDifficultyColor(topic.difficulty),
+                    background: `${getDifficultyColor(topic.difficulty)}18`,
+                    border: `1px solid ${getDifficultyColor(topic.difficulty)}40`,
+                    padding: "3px 10px",
+                    borderRadius: "12px",
+                    fontSize: "12px",
+                    fontWeight: 700
+                  }}>
                     {topic.difficulty}
                   </span>
                 </div>
+
+                {/* Ссылка на карточку */}
                 <div style={{ textAlign: "right" }}>
-                  <Link 
-                    to={`/topic/${topic.id}`} 
-                    style={{ fontSize: "12px", color: "var(--accent-orange)", border: "1px solid var(--border-color)", padding: "4px 10px", borderRadius: "4px", background: "var(--bg-main)" }}
+                  <Link
+                    to={`/topic/${topic.id}`}
+                    style={{
+                      color: "var(--accent-orange)",
+                      fontSize: "13px",
+                      fontWeight: 600,
+                      textDecoration: "none"
+                    }}
                   >
-                    Код →
+                    Решать →
                   </Link>
                 </div>
               </div>
@@ -200,6 +333,7 @@ export default function TopicsList() {
           })
         )}
       </div>
+
     </div>
   );
 }

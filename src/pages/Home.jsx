@@ -42,10 +42,38 @@ export default function Home() {
     }
   ];
 
+  // 4 ключевые фичи C++20
+  const cpp20Features = [
+    {
+      title: "Concepts (Концепты)",
+      tag: "template <typename T>",
+      desc: "Строгие ограничения типов на этапе компиляции с чистыми и понятными ошибками сборки взамен монструозных шаблонов SFINAE и std::enable_if.",
+      code: `template <typename T>\nrequires std::integral<T>\nT add(T a, T b) { return a + b; }`
+    },
+    {
+      title: "Ranges (Диапазоны)",
+      tag: "std::views",
+      desc: "Ленивые вычисления и элегантные конвейеры обработки коллекций через Unix-подобный пайплайн (|) без лишних аллокаций промежуточных векторов.",
+      code: `auto res = nums \n  | std::views::filter([](int n) { return n % 2 == 0; })\n  | std::views::transform([](int n) { return n * 2; });`
+    },
+    {
+      title: "Coroutines (Корутины)",
+      tag: "co_await / co_yield",
+      desc: "Асинхронные генераторы и задачи с возможностью приостановки и возобновления выполнения без блокировки системного потока ОС.",
+      code: `generator<int> count(int max) {\n    for (int i = 0; i < max; ++i)\n        co_yield i;\n}`
+    },
+    {
+      title: "Modules (Модули)",
+      tag: "import / export",
+      desc: "Решение проблемы медленной сборки C++. Изолированные единицы трансляции без макросного загрязнения и медленной вставки заголовочных файлов #include.",
+      code: `export module Math;\nexport int square(int x) {\n    return x * x;\n}`
+    }
+  ];
+
   return (
     <div className="page-anim" style={{ width: "100%", paddingBottom: "80px" }}>
       
-      {/* 1. БАННЕР С НАСТОЯЩИМ ТЕМНЫМ КОДОМ И СИМВОЛАМИ C++ НА ФОНЕ */}
+      {/* 1. БАННЕР С ФОТОГРАФИЕЙ НА ФОНЕ */}
       <div style={{
         position: "relative",
         width: "100%",
@@ -63,7 +91,6 @@ export default function Home() {
         boxShadow: "inset 0 -40px 60px rgba(0,0,0,0.7)"
       }}>
         
-        {/* Заголовок поверх фотографии */}
         <h1 style={{
           fontSize: "42px",
           fontWeight: 800,
@@ -155,7 +182,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 2. ОСНОВНОЙ КОНТЕНТ НИЖЕ ФОТОГРАФИИ */}
+      {/* 2. ОСНОВНОЙ КОНТЕНТ */}
       <div className="container" style={{ maxWidth: "1240px", marginTop: "44px", padding: "0 16px" }}>
         
         {/* Информационный виджет курса */}
@@ -185,7 +212,7 @@ export default function Home() {
               Практическая подготовка к разработке и собеседованиям
             </h2>
             <p style={{ margin: 0, fontSize: "13px", color: "var(--text-muted)" }}>
-              Синтаксис, низкоуровневые механизмы языка, управление памятью и шаблоны классов в единой структуре.
+              Синтаксис, разбор низкоуровневых механизмов языка, управление памятью и шаблоны классов в единой структуре.
             </p>
           </div>
 
@@ -305,7 +332,7 @@ export default function Home() {
           ))}
         </div>
 
-        {/* Нижняя быстрая статистика */}
+        {/* Быстрая статистика платформы */}
         <div style={{
           background: "var(--bg-main)",
           border: "1px solid var(--border-color)",
@@ -313,7 +340,8 @@ export default function Home() {
           padding: "18px 24px",
           display: "flex",
           justifyContent: "space-around",
-          textAlign: "center"
+          textAlign: "center",
+          marginBottom: "56px"
         }}>
           <div>
             <div style={{ fontSize: "18px", fontWeight: 700, color: "var(--text-main)" }}>24 темы</div>
@@ -329,6 +357,103 @@ export default function Home() {
             <div style={{ fontSize: "18px", fontWeight: 700, color: "var(--accent-orange)" }}>100% Offline</div>
             <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>Прогресс в браузере</div>
           </div>
+        </div>
+
+        {/* 3. СЕКЦИЯ: ЧТО НОВОГО В C++20 (HIGHLIGHTS) */}
+        <div style={{
+          background: "var(--bg-secondary)",
+          border: "1px solid var(--border-color)",
+          borderRadius: "12px",
+          padding: "36px 32px",
+          boxShadow: "0 12px 32px rgba(0, 0, 0, 0.3)"
+        }}>
+          
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "16px", marginBottom: "28px" }}>
+            <div>
+              <div style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                background: "rgba(44, 187, 93, 0.12)",
+                border: "1px solid rgba(44, 187, 93, 0.3)",
+                color: "var(--accent-green)",
+                padding: "4px 12px",
+                borderRadius: "16px",
+                fontSize: "11px",
+                fontWeight: 700,
+                letterSpacing: "0.5px",
+                marginBottom: "10px"
+              }}>
+                <span>●</span> ISO/IEC 14882:2020
+              </div>
+              <h3 style={{ fontSize: "24px", fontWeight: 800, margin: 0, color: "var(--text-main)" }}>
+                Ключевые нововведения C++20
+              </h3>
+            </div>
+            <p style={{ margin: 0, color: "var(--text-muted)", fontSize: "13px", maxWidth: "480px" }}>
+              Стандарт C++20 стал самым масштабным обновлением языка со времён C++11, фундаментально изменив метапрограммирование, шаблоны и сборку проектов.
+            </p>
+          </div>
+
+          {/* Сетка фичей C++20 */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(270px, 1fr))",
+            gap: "20px"
+          }}>
+            {cpp20Features.map((feat, idx) => (
+              <div
+                key={idx}
+                style={{
+                  background: "var(--bg-main)",
+                  border: "1px solid var(--border-color)",
+                  borderRadius: "8px",
+                  padding: "20px",
+                  display: "flex",
+                  flexDirection: "column",
+                  justifyContent: "space-between"
+                }}
+              >
+                <div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                    <h4 style={{ fontSize: "16px", fontWeight: 700, margin: 0, color: "var(--text-main)" }}>
+                      {feat.title}
+                    </h4>
+                    <span style={{
+                      fontSize: "11px",
+                      fontFamily: "var(--font-mono)",
+                      color: "var(--accent-orange)",
+                      background: "rgba(255, 161, 22, 0.08)",
+                      padding: "2px 6px",
+                      borderRadius: "4px"
+                    }}>
+                      {feat.tag}
+                    </span>
+                  </div>
+
+                  <p style={{ fontSize: "13px", color: "var(--text-muted)", lineHeight: "1.5", marginBottom: "16px" }}>
+                    {feat.desc}
+                  </p>
+                </div>
+
+                {/* Мини-окно с кодом фичи */}
+                <div style={{
+                  background: "#0d0d0d",
+                  border: "1px solid #222",
+                  borderRadius: "6px",
+                  padding: "10px 12px",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "11px",
+                  color: "#9cdcfe",
+                  overflowX: "auto",
+                  lineHeight: "1.5"
+                }}>
+                  <pre style={{ margin: 0 }}><code>{feat.code}</code></pre>
+                </div>
+              </div>
+            ))}
+          </div>
+
         </div>
 
       </div>
